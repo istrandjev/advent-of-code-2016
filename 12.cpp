@@ -25,19 +25,38 @@ regex jnz("jnz ([a-d]|\\d+) (-?\\d+)");
 
 int registers[128];
 
-void copy_value_to_register(const string& value_string, const char& r) {
+typedef void(*Operation)(const string & lhs, const string& rhs);
+
+struct Command {
+    string lhs, rhs;
+    Operation op;
+    void do_command() const {
+        op(lhs, rhs);
+    }
+};
+
+void copy_value_to_register(const string& value_string, const string& r) {
     int val = stoi(value_string);
-    registers[r] = val;
+    registers[r[0]] = val;
 }
 
 
-void copy_register_to_register(const char& r_from, const char& r_to) {
-    registers[r_to] = registers[r_from];
+void copy_register_to_register(const string& r_from, const string& r_to) {
+    registers[r_to[0]] = registers[r_from[0]];
 }
+
+void increase_register(const string& r, const string& not_used) {
+    registers[r[0]]++;
+}
+
+void decrease_register(const string& r, const string& not_used) {
+    registers[r[0]]--;
+}
+
 
 int program_pointer = 0;
 
-void jump_if_not_zero(const string& cond, string jump_string) {
+void jump_if_not_zero(const string& cond, const string& jump_string) {
     bool is_true;
     if (cond.size() == 1 && cond[0] >= 'a' && cond[0] <= 'd') {
         is_true = (registers[cond[0]] != 0);
@@ -50,35 +69,36 @@ void jump_if_not_zero(const string& cond, string jump_string) {
     }
 }
 
-void do_operation(const string& command) {
+Command parse_command(const string& command) {
     smatch match;
     if (regex_match(command, match, cpy)) {
         if (match.str(2).size() > 0) {
-            copy_value_to_register(match.str(2), match.str(4)[0]);
+            return Command{match.str(2), match.str(4), copy_value_to_register};
         } else {
-            copy_register_to_register(match.str(3)[0], match.str(4)[0]);
+            return Command{match.str(3), match.str(4), copy_register_to_register};
         }
     } else if (regex_match(command, match, inc)) {
-        registers[match.str(1)[0]]++;
+        return Command{match.str(1), match.str(1), increase_register};
     } else if (regex_match(command, match, decrease)) {
-        registers[match.str(1)[0]]--;
+        return Command{match.str(1), match.str(1), decrease_register};
     } else if (regex_match(command, match, jnz)) {
-        jump_if_not_zero(match.str(1), match.str(2));
+        return Command{match.str(1), match.str(2), jump_if_not_zero};
     } else {
         cout << "Unknown command " << command << endl;
+        exit(1);
     }
 }
 int main() {
     string s;
     memset(registers, 0, sizeof(registers));
     
-    vector<string> program;
+    vector<Command> program;
     while (getline(cin, s)) {
-        program.push_back(s);
+        program.push_back(parse_command(s));
     }
     while (program_pointer < program.size()) {
         int current_pointer = program_pointer;
-        do_operation(program[program_pointer]);
+        program[program_pointer].do_command();
         if (current_pointer == program_pointer) {
             program_pointer++;
         }
@@ -89,7 +109,7 @@ int main() {
     registers['c'] = 1;
     while (program_pointer < program.size()) {
         int current_pointer = program_pointer;
-        do_operation(program[program_pointer]);
+        program[program_pointer].do_command();
         if (current_pointer == program_pointer) {
             program_pointer++;
         }
