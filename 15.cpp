@@ -18,26 +18,22 @@ using namespace std;
 typedef long long ll;
 
 
-pair<int, int> parse_disk(int index, int holes, int position) {
+pair<int, int> proces_disk(int index, int holes, int position) {
     return {holes, ((holes - position - index) % holes + holes) % holes};
 }
 
 int solve(const vector<pair<int, int> >& a) {
     int res;
-    for (int t = 0; ; ++t) {
-        bool good = true;
-        for (auto p : a) {
-            if (t % p.first != p.second) {
-                good = false;
-                break;
-            }
+    int mul = 1;
+    int t = 1;
+    for (int i = 0 ; i < (int)a.size(); ++i) {
+        while (t % a[i].first != a[i].second) {
+            t += mul;
         }
-        if (good) {
-            res = t;
-            break;
-        }
+        mul *= a[i].first;  // compute lcm if not coprime
     }
-    return res;
+
+    return t;
 }
 
 int main() {
@@ -52,11 +48,11 @@ int main() {
         }
         int holes = stoi(match.str(1));
         int position = stoi(match.str(2));
-        a.push_back(parse_disk(index, holes, position));
+        a.push_back(proces_disk(index, holes, position));
     }
 
     cout << "Part 1 " << solve(a) << endl;
-    a.push_back(parse_disk(a.size() + 1, 11, 0));
+    a.push_back(proces_disk(a.size() + 1, 11, 0));
     cout << "Part 2 " << solve(a) << endl;
 
     return 0;
