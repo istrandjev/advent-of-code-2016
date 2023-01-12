@@ -30,7 +30,7 @@ int solve(const vector<pair<int, int> >& a) {
         while (t % a[i].first != a[i].second) {
             t += mul;
         }
-        mul *= a[i].first;  // compute lcm if not coprime
+        mul = lcm(a[i].first, mul);
     }
 
     return t;
